@@ -1,0 +1,242 @@
+🧑‍💻 STEP 1: Create Multiple Users (Per Office)
+🔹 Mirpur Users
+sudo useradd -m -G mirpur_grp mirpur_user1
+sudo useradd -m -G mirpur_grp mirpur_user2
+
+sudo passwd mirpur_user1
+sudo passwd mirpur_user2
+
+sudo smbpasswd -a mirpur_user1
+sudo smbpasswd -a mirpur_user2
+🔹 Gulshan Users
+sudo useradd -m -G gulshan_grp gulshan_user1
+sudo passwd gulshan_user1
+sudo smbpasswd -a gulshan_user1
+🔹 Uttara Users
+sudo useradd -m -G uttara_grp uttara_user1
+sudo passwd uttara_user1
+sudo smbpasswd -a uttara_user1
+🔹 Admin User
+sudo useradd -m -G admin_grp admin_user
+sudo passwd admin_user
+sudo smbpasswd -a admin_user
+🔐 STEP 2: Role-Based Access (Already Done)
+
+👉 This is controlled by:
+
+valid users = @group_name
+
+So:
+
+Mirpur user → only Mirpur + Common
+Admin → all folders
+📁 STEP 3: Create Test Folders for Each User
+
+Now we verify access visually 👇
+
+🔹 Inside Mirpur Share
+sudo mkdir /srv/samba/mirpur/mirpur_user1
+sudo mkdir /srv/samba/mirpur/mirpur_user2
+
+sudo chown mirpur_user1:mirpur_grp /srv/samba/mirpur/mirpur_user1
+sudo chown mirpur_user2:mirpur_grp /srv/samba/mirpur/mirpur_user2
+
+sudo chmod 770 /srv/samba/mirpur/mirpur_user1
+sudo chmod 770 /srv/samba/mirpur/mirpur_user2
+🔹 Gulshan
+sudo mkdir /srv/samba/gulshan/gulshan_user1
+sudo chown gulshan_user1:gulshan_grp /srv/samba/gulshan/gulshan_user1
+sudo chmod 770 /srv/samba/gulshan/gulshan_user1
+🔹 Uttara
+sudo mkdir /srv/samba/uttara/uttara_user1
+sudo chown uttara_user1:uttara_grp /srv/samba/uttara/uttara_user1
+sudo chmod 770 /srv/samba/uttara/uttara_user1
+🔹 Common Folder (All Users)
+sudo mkdir /srv/samba/common/shared_test
+sudo chmod 777 /srv/samba/common/shared_test
+
+👉 Everyone can access this → easy testing
+
+🧪 STEP 4: Add Test Files
+echo "Mirpur Data" | sudo tee /srv/samba/mirpur/test.txt
+echo "Gulshan Data" | sudo tee /srv/samba/gulshan/test.txt
+echo "Uttara Data" | sudo tee /srv/samba/uttara/test.txt
+echo "Common Data" | sudo tee /srv/samba/common/test.txt
+🖥️ STEP 5: Test from Windows
+🔹 Login as Mirpur User
+\\<server-ip>
+
+👉 Expected:
+
+✔ Can open:
+
+Mirpur
+Common
+
+❌ Cannot access:
+
+Gulshan
+Uttara
+🔹 Login as Admin
+
+✔ Can access EVERYTHING:
+
+Mirpur
+Gulshan
+Uttara
+Common
+Admin
+
+##Create LVM Partition
+
+sudo fdisk /dev/vdb
+  n  → new
+p  → primary
+1
+Enter (full disk)
+t  → change type
+8e → Linux LVM
+w
+
+sudo apt install lvm2 -y
+
+sudo pvcreate /dev/vdb1
+
+sudo vgcreate samba_vg /dev/vdb1
+
+# Mirpur
+sudo lvcreate -L 20G -n mirpur_lv samba_vg
+
+# Gulshan
+sudo lvcreate -L 20G -n gulshan_lv samba_vg
+
+# Uttara
+sudo lvcreate -L 20G -n uttara_lv samba_vg
+
+# Common
+sudo lvcreate -L 40G -n common_lv samba_vg
+
+# Admin (remaining)
+sudo lvcreate -l 100%FREE -n admin_lv samba_vg
+
+##Format Volumes
+sudo mkfs.ext4 /dev/samba_vg/mirpur_lv
+sudo mkfs.ext4 /dev/samba_vg/gulshan_lv
+sudo mkfs.ext4 /dev/samba_vg/uttara_lv
+sudo mkfs.ext4 /dev/samba_vg/common_lv
+sudo mkfs.ext4 /dev/samba_vg/admin_lv
+
+  
+sudo mkdir -p /srv/samba/{mirpur,gulshan,uttara,common,admin}
+
+##Mount Volumes
+
+sudo mount /dev/samba_vg/mirpur_lv /srv/samba/mirpur
+sudo mount /dev/samba_vg/gulshan_lv /srv/samba/gulshan
+sudo mount /dev/samba_vg/uttara_lv /srv/samba/uttara
+sudo mount /dev/samba_vg/common_lv /srv/samba/common
+sudo mount /dev/samba_vg/admin_lv /srv/samba/admin
+
+## Permanent 
+vim /etc/fstab +
+
+sudo mount /dev/samba_vg/mirpur_lv /srv/samba/mirpur
+sudo mount /dev/samba_vg/gulshan_lv /srv/samba/gulshan
+sudo mount /dev/samba_vg/uttara_lv /srv/samba/uttara
+sudo mount /dev/samba_vg/common_lv /srv/samba/common
+sudo mount /dev/samba_vg/admin_lv /srv/samba/admin
+
+sudo mount -a
+
+
+Vim /etc/samba/smb.conf
+
+[global]
+   workgroup = WORKGROUP
+   server string = PICO Cloud Storage
+   security = user
+
+   netbios name = PICO-SRV
+
+   interfaces = lo eth0
+   bind interfaces only = yes
+
+   log file = /var/log/samba/%m.log
+   max log size = 1000
+   logging = file
+
+   passdb backend = tdbsam
+
+   obey pam restrictions = yes
+   unix password sync = no
+
+   map to guest = never
+
+   create mask = 0770
+   directory mask = 2770
+
+   veto files = /Thumbs.db/.DS_Store/
+
+
+# ========================
+# MIRPUR SHARE
+# ========================
+[Mirpur]
+   path = /srv/samba/mirpur
+   valid users = @mirpur_grp @admin_grp
+   force group = mirpur_grp
+   browseable = yes
+   writable = yes
+   read only = no
+
+# ========================
+# GULSHAN SHARE
+# ========================
+[Gulshan]
+   path = /srv/samba/gulshan
+   valid users = @gulshan_grp @admin_grp
+   force group = gulshan_grp
+   browseable = yes
+   writable = yes
+   read only = no
+
+# ========================
+# UTTARA SHARE
+# ========================
+[Uttara]
+   path = /srv/samba/uttara
+   valid users = @uttara_grp @admin_grp
+   force group = uttara_grp
+   browseable = yes
+   writable = yes
+   read only = no
+
+# ========================
+# COMMON SHARE
+# ========================
+[Common]
+   path = /srv/samba/common
+   valid users = @mirpur_grp @gulshan_grp @uttara_grp @admin_grp
+   browseable = yes
+   writable = yes
+   read only = no
+
+# ========================
+# ADMIN SHARE
+# ========================
+[Admin]
+   path = /srv/samba/admin
+   valid users = @admin_grp
+   browseable = yes
+   writable = yes
+   read only = no
+
+
+AFTER CONFIG (VERY IMPORTANT)
+1️⃣ Check config
+testparm
+
+👉 Must show "Loaded services file OK"
+
+2️⃣ Restart Samba
+sudo systemctl restart smbd
