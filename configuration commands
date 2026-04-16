@@ -1,4 +1,4 @@
-🧑‍💻 STEP 1: Create Multiple Users (Per Office)
+Create Multiple Users (Per Office)
 🔹 Mirpur Users
 sudo useradd -m -G mirpur_grp mirpur_user1
 sudo useradd -m -G mirpur_grp mirpur_user2
@@ -20,9 +20,10 @@ sudo smbpasswd -a uttara_user1
 sudo useradd -m -G admin_grp admin_user
 sudo passwd admin_user
 sudo smbpasswd -a admin_user
-🔐 STEP 2: Role-Based Access (Already Done)
 
-👉 This is controlled by:
+Role-Based Access (Already Done)
+
+This is controlled by:
 
 valid users = @group_name
 
@@ -30,9 +31,11 @@ So:
 
 Mirpur user → only Mirpur + Common
 Admin → all folders
-📁 STEP 3: Create Test Folders for Each User
 
-Now we verify access visually 👇
+
+Create Test Folders for Each User
+
+Now we verify access visually 
 
 🔹 Inside Mirpur Share
 sudo mkdir /srv/samba/mirpur/mirpur_user1
@@ -55,9 +58,9 @@ sudo chmod 770 /srv/samba/uttara/uttara_user1
 sudo mkdir /srv/samba/common/shared_test
 sudo chmod 777 /srv/samba/common/shared_test
 
-👉 Everyone can access this → easy testing
+##Everyone can access this → easy testing
 
-🧪 STEP 4: Add Test Files
+Add Test Files
 echo "Mirpur Data" | sudo tee /srv/samba/mirpur/test.txt
 echo "Gulshan Data" | sudo tee /srv/samba/gulshan/test.txt
 echo "Uttara Data" | sudo tee /srv/samba/uttara/test.txt
