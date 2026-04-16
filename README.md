@@ -88,7 +88,7 @@ Clients can access the server using:
 Example:
 
 ```
-\\160.191.150.205\Mirpur
+\\<ip>\<username>
 ```
 
 ---
@@ -108,15 +108,6 @@ Each user is assigned:
 * A dedicated folder within their department share
 * Access validation through real-time file operations
 
----
-
-## 🚀 Future Improvements
-
-* Integration with LDAP / Active Directory
-* Web-based file access (Nextcloud)
-* Automated user provisioning scripts
-* Backup and snapshot system (LVM snapshots)
-* Monitoring and logging enhancements
 
 ---
 
